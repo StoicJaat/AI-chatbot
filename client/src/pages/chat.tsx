@@ -83,7 +83,7 @@ export default function Chat() {
         setCurrentConversationId(conversationId);
         setConversationMessages((prev) => {
           const newMap = new Map(prev);
-          newMap.set(conversationId, []);
+          newMap.set(conversationId!, []);
           return newMap;
         });
       }
@@ -98,8 +98,8 @@ export default function Chat() {
 
       setConversationMessages((prev) => {
         const newMap = new Map(prev);
-        const messages = newMap.get(conversationId) || [];
-        newMap.set(conversationId, [...messages, tempUserMessage]);
+        const messages = newMap.get(conversationId!) || [];
+        newMap.set(conversationId!, [...messages, tempUserMessage]);
         return newMap;
       });
 
@@ -112,8 +112,8 @@ export default function Chat() {
 
       setConversationMessages((prev) => {
         const newMap = new Map(prev);
-        const messages = (newMap.get(conversationId) || []).filter(m => !m.id.startsWith("temp-"));
-        newMap.set(conversationId, [...messages, userMessage, aiMessage]);
+        const messages = (newMap.get(conversationId!) || []).filter(m => !m.id.startsWith("temp-"));
+        newMap.set(conversationId!, [...messages, userMessage, aiMessage]);
         return newMap;
       });
 
@@ -135,12 +135,14 @@ export default function Chat() {
       });
       setIsTyping(false);
       
-      setConversationMessages((prev) => {
-        const newMap = new Map(prev);
-        const messages = (newMap.get(conversationId) || []).filter(m => !m.id.startsWith("temp-"));
-        newMap.set(conversationId, messages);
-        return newMap;
-      });
+      if (conversationId) {
+        setConversationMessages((prev) => {
+          const newMap = new Map(prev);
+          const messages = (newMap.get(conversationId!) || []).filter(m => !m.id.startsWith("temp-"));
+          newMap.set(conversationId!, messages);
+          return newMap;
+        });
+      }
     }
   };
 

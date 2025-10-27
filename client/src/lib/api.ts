@@ -3,22 +3,21 @@ import type { Conversation, Message, InsertConversation, InsertMessage } from "@
 
 export const conversationsApi = {
   getAll: async (): Promise<Conversation[]> => {
-    const response = await fetch("/api/conversations");
-    if (!response.ok) throw new Error("Failed to fetch conversations");
+    const response = await apiRequest("GET", "/api/conversations");
     return response.json();
   },
 
   create: async (data: InsertConversation): Promise<Conversation> => {
-    return apiRequest("POST", "/api/conversations", data);
+    const response = await apiRequest("POST", "/api/conversations", data);
+    return response.json();
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiRequest("DELETE", `/api/conversations/${id}`);
+    await apiRequest("DELETE", `/api/conversations/${id}`);
   },
 
   getMessages: async (conversationId: string): Promise<Message[]> => {
-    const response = await fetch(`/api/conversations/${conversationId}/messages`);
-    if (!response.ok) throw new Error("Failed to fetch messages");
+    const response = await apiRequest("GET", `/api/conversations/${conversationId}/messages`);
     return response.json();
   },
 
@@ -26,6 +25,7 @@ export const conversationsApi = {
     conversationId: string,
     data: Omit<InsertMessage, "conversationId">
   ): Promise<{ userMessage: Message; aiMessage: Message }> => {
-    return apiRequest("POST", `/api/conversations/${conversationId}/messages`, data);
+    const response = await apiRequest("POST", `/api/conversations/${conversationId}/messages`, data);
+    return response.json();
   },
 };

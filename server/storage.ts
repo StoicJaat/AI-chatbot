@@ -1,5 +1,6 @@
-import { type Conversation, type Message, type InsertConversation, type InsertMessage } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Conversation, type Message, type InsertConversation, type InsertMessage, conversations, messages } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -12,77 +13,62 @@ export interface IStorage {
   getMessagesByConversation(conversationId: string): Promise<Message[]>;
 }
 
-export class MemStorage implements IStorage {
-  private conversations: Map<string, Conversation>;
-  private messages: Map<string, Message>;
-
-  constructor() {
-    this.conversations = new Map();
-    this.messages = new Map();
-  }
-
+export class DbStorage implements IStorage {
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
-    const id = randomUUID();
-    const now = new Date();
-    const conversation: Conversation = { 
-      ...insertConversation, 
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.conversations.set(id, conversation);
+    const [conversation] = await db
+      .insert(conversations)
+      .values(insertConversation)
+      .returning();
     return conversation;
   }
 
   async getConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    return await db
+      .select()
+      .from(conversations)
+      .orderBy(desc(conversations.updatedAt));
   }
 
   async getConversation(id: string): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id));
+    return conversation;
   }
 
   async deleteConversation(id: string): Promise<void> {
-    this.conversations.delete(id);
-    Array.from(this.messages.values())
-      .filter(m => m.conversationId === id)
-      .forEach(m => this.messages.delete(m.id));
+    await db.delete(conversations).where(eq(conversations.id, id));
   }
 
   async updateConversationTitle(id: string, title: string): Promise<void> {
-    const conversation = this.conversations.get(id);
-    if (conversation) {
-      conversation.title = title;
-      conversation.updatedAt = new Date();
-      this.conversations.set(id, conversation);
-    }
+    await db
+      .update(conversations)
+      .set({ title, updatedAt: new Date() })
+      .where(eq(conversations.id, id));
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = randomUUID();
-    const message: Message = { 
-      ...insertMessage, 
-      id,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
     
-    const conversation = this.conversations.get(insertMessage.conversationId);
-    if (conversation) {
-      conversation.updatedAt = new Date();
-      this.conversations.set(conversation.id, conversation);
-    }
+    await db
+      .update(conversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(conversations.id, insertMessage.conversationId));
     
     return message;
   }
 
   async getMessagesByConversation(conversationId: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(m => m.conversationId === conversationId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();

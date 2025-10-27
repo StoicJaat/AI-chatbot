@@ -71,7 +71,7 @@ export function AppSidebar({
                           {conversation.title}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true })}
+                          {conversation.updatedAt ? formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true }) : 'Just now'}
                         </p>
                       </div>
                       <Button
